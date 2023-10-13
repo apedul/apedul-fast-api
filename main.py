@@ -8,12 +8,31 @@ import json
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 load_dotenv()
 
 app.nft_obj={}
+app.last_token = 0
 app.alchemy_api = os.getenv("ALCHEMY_API")
 
 class Guess(BaseModel):
@@ -62,12 +81,11 @@ def find_two(df, used_col=[], ans=[]):
 
 @app.get("/")
 async def root():
-    return app.nft_obj
+    return "Welcome to api of apedul | akinator inspired for web3 NFTs"
       
-@app.get("/setup")
-async def setup():
-    print(app.alchemy_api)
-    url = f"https://eth-mainnet.g.alchemy.com/nft/v2/{app.alchemy_api}/getNFTsForCollection?collectionSlug=boredapeyachtclub&withMetadata=true"
+# @app.get("/setup")
+# async def setup():
+    url = f"https://eth-mainnet.g.alchemy.com/nft/v2/{app.alchemy_api}/getNFTsForCollection?collectionSlug=boredapeyachtclub&withMetadata=true&startToken={app.last_token}"
     headers = {"accept": "application/json"}
     response = requests.get(url, headers=headers)
 
@@ -83,49 +101,57 @@ async def setup():
         finalobj['name'] = i['title']
         objs.append(finalobj)
 
-    app.nft_obj = {}
-    app.nft_obj['tokenId'] = []
-    app.nft_obj['img'] = []
-    app.nft_obj['name'] = []
+    nft_obj = {}
+    nft_obj['tokenId'] = []
+    nft_obj['img'] = []
+    nft_obj['name'] = []
     for i in objs:
-        app.nft_obj['tokenId'].append(i['tokenId'])
-        app.nft_obj['img'].append(i['img'])
-        app.nft_obj['name'].append(i['name'])
+        nft_obj['tokenId'].append(i['tokenId'])
+        nft_obj['img'].append(i['img'])
+        nft_obj['name'].append(i['name'])
 
         for key in i['attributes']:
-            if key in app.nft_obj:
-                for m in range(len(app.nft_obj['tokenId'])-len(app.nft_obj[key]) -1):
-                    app.nft_obj[key].append(0)
-                app.nft_obj[key].append(1)
+            if key in nft_obj:
+                for m in range(len(nft_obj['tokenId'])-len(nft_obj[key]) -1):
+                    nft_obj[key].append(0)
+                nft_obj[key].append(1)
             else:
-                app.nft_obj[key] = []
-                for nt in range(len(app.nft_obj['tokenId'])-1):
-                    app.nft_obj[key].append(0)
-                app.nft_obj[key].append(1)
+                nft_obj[key] = []
+                for nt in range(len(nft_obj['tokenId'])-1):
+                    nft_obj[key].append(0)
+                nft_obj[key].append(1)
             
-            if key+"_"+i['attributes'][key] in app.nft_obj:
-                for m in range(len(app.nft_obj['tokenId'])-len(app.nft_obj[key+"_"+i['attributes'][key]]) -1):
-                    app.nft_obj[key+"_"+i['attributes'][key]].append(0)
-                app.nft_obj[key+"_"+i['attributes'][key]].append(1)
+            if key+"_"+i['attributes'][key] in nft_obj:
+                for m in range(len(nft_obj['tokenId'])-len(nft_obj[key+"_"+i['attributes'][key]]) -1):
+                    nft_obj[key+"_"+i['attributes'][key]].append(0)
+                nft_obj[key+"_"+i['attributes'][key]].append(1)
             else:
-                app.nft_obj[key+"_"+i['attributes'][key]] = []
-                for nt in range(len(app.nft_obj['tokenId'])-1):
-                    app.nft_obj[key+"_"+i['attributes'][key]].append(0)
-                app.nft_obj[key+"_"+i['attributes'][key]].append(1)
+                nft_obj[key+"_"+i['attributes'][key]] = []
+                for nt in range(len(nft_obj['tokenId'])-1):
+                    nft_obj[key+"_"+i['attributes'][key]].append(0)
+                nft_obj[key+"_"+i['attributes'][key]].append(1)
 
-    for key in app.nft_obj:
-        for i in range(len(app.nft_obj['tokenId']) - len(app.nft_obj[key])):
-            app.nft_obj[key].append(0)
+    for key in nft_obj:
+        for i in range(len(nft_obj['tokenId']) - len(nft_obj[key])):
+            nft_obj[key].append(0)
 
-    df = pd.DataFrame(data=app.nft_obj)
+    #save last token
+    app.last_token += len(nft_obj["tokenId"])
+    print(nft_obj["tokenId"][-1])
 
-    return app.nft_obj
+    if app.nft_obj == {}:
+        app.nft_obj = nft_obj
+    else:
+        res = pd.merge( pd.DataFrame(data=app.nft_obj), pd.DataFrame(data=nft_obj), how="outer")
+        res = res.fillna(0)
+        app.nft_obj = res.to_dict('list')
+
+    return nft_obj
 
 # @app.
 @app.post("/guess")
 async def guess(item: Guess):
-    
-    df = pd.DataFrame(data=app.nft_obj)
+    df = pd.read_csv('csv-boredape.csv')  
     df, used_col, ans, state = find_two(df,item.question, item.answer)
 
     if state:
