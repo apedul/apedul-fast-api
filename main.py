@@ -19,7 +19,7 @@ origins = [
     "http://localhost",
     "http://localhost:8080",
     "https://apedul-client.vercel.app"
-    "https://apedul.vercel.app/",
+    "https://apedul.vercel.app",
 
 ]
 
