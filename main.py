@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 
 import numpy as np
-from scipy.stats import entropy
 import pandas as pd
 import requests
 import json
@@ -31,7 +30,7 @@ app.add_middleware(
 
 load_dotenv()
 
-app.nft_obj={}
+app.nft_obj=pd.read_csv('csv-boredape.csv')  
 app.last_token = 0
 app.alchemy_api = os.getenv("ALCHEMY_API")
 
@@ -151,7 +150,7 @@ async def root():
 # @app.
 @app.post("/guess")
 async def guess(item: Guess):
-    df = pd.read_csv('csv-boredape.csv')  
+    df = app.nft_obj
     df, used_col, ans, state = find_two(df,item.question, item.answer)
 
     if state:
