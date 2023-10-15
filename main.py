@@ -16,6 +16,8 @@ origins = [
     "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:8080",
+    "https://apedul-client.vercel.app"
+
 ]
 
 app.add_middleware(
