@@ -9,6 +9,8 @@ import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
+import sys
+
 app = FastAPI()
 
 origins = [
@@ -17,6 +19,7 @@ origins = [
     "http://localhost",
     "http://localhost:8080",
     "https://apedul-client.vercel.app"
+    "https://apedul.vercel.app/",
 
 ]
 
@@ -162,3 +165,5 @@ async def guess(item: Guess):
         result = Answer(state = "Pending", question=used_col, answer=ans)
 
     return result
+
+print(sys.getsizeof(app.nft_obj))
