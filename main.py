@@ -150,9 +150,7 @@ async def root():
 # @app.
 @app.post("/guess")
 async def guess(item: Guess):
-    df = app.nft_obj
-    df, used_col, ans, state = find_two(df,item.question, item.answer)
-
+    df, used_col, ans, state = find_two(app.nft_obj,item.question, item.answer)
     if state:
         result = Answer(state = "Done", question=used_col, answer=ans)
         result.name = df.name.values.tolist()
